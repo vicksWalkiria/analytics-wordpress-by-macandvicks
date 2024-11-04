@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Analytics Tracker Plugin
+Plugin Name: Analytics Tracker Plugin by MacAndVicks
 Description: Registra visitas y detalles en la base de datos desde el pie de página.
 Version: 1.0
 Author: Tu Nombre
