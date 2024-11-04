@@ -5,6 +5,13 @@ Description: Plugin para mostrar un reporte de visitas en el área de administra
 Version: 1.0
 Author: MacAndVicks.com
 */
+include_once plugin_dir_path(__FILE__) . 'analytics-tracker-plugin.php';
+
+
+function analytics_report_enqueue_styles() {
+    wp_enqueue_style('bootstrap-css', 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css');
+}
+add_action('admin_enqueue_scripts', 'analytics_report_enqueue_styles');
 
 if (!defined('ABSPATH')) exit; // Proteger contra acceso directo
 
@@ -119,9 +126,6 @@ function analytics_report_page() {
     $sessions_count = $wpdb->get_var($sessions_query) ?? 1;
     $pages_per_session = $sessions_count > 0 ? ($total_visits / $sessions_count) : 0;
 
-    // Construir el filtro combinado para la cláusula WHERE
-    $where_clause = ''; // Aquí define tu cláusula WHERE de acuerdo a tus filtros
-
     // Consulta para las páginas vistas con detalles
     $pages_query = "
         SELECT url_visited, COUNT(*) as visit_count,
@@ -195,39 +199,38 @@ function analytics_report_page() {
                    <th>URL</th>
                    <th>Visits</th>
                    <th>Top Referrer</th>
-                   <th>Bot</th>
+                   <th>Source</th>
                </tr>
                </thead>
-               <tbody>
-               <?php while ($page = $pages_result->fetch_assoc()): ?>
-                   <tr>
-                       <td><?= htmlspecialchars($page['url_visited']) ?></td>
-                       <td><?= htmlspecialchars($page['visit_count']) ?></td>
-                       <td><?= htmlspecialchars($page['top_referrer'] ?? 'Direct') ?></td>
-                       <td><?= $page['bot_name'] ? htmlspecialchars($page['bot_name']) : 'User' ?></td>
-                   </tr>
-               <?php endwhile; ?>
+	       <tbody>
+		<?php foreach ($pages_result as $page): ?>
+		 <tr>
+		        <td><?= htmlspecialchars($page->url_visited) ?></td>
+		        <td><?= htmlspecialchars($page->visit_count) ?></td>
+		        <td><?= htmlspecialchars($page->top_referrer ?? 'Direct') ?></td>
+		        <td><?= $page->bot_name ? htmlspecialchars($page->bot_name) : 'User' ?></td>
+    		</tr>
+               <?php endforeach; ?>
                </tbody>
            </table>
-
-           <!-- Tabla de visitas por red social -->
-           <h4>Social Network Visits</h4>
-           <table class="table table-bordered">
-               <thead class="thead-dark">
-               <tr>
-                   <th>Social Network</th>
-                   <th>Total Visits</th>
-               </tr>
-               </thead>
-               <tbody>
-               <?php while ($social = $social_result->fetch_assoc()): ?>
-                   <tr>
-                       <td><?= htmlspecialchars($social['social_network']) ?></td>
-                       <td><?= htmlspecialchars($social['total_visits']) ?></td>
-                   </tr>
-               <?php endwhile; ?>
-               </tbody>
-           </table>
+		<!-- Tabla de visitas por red social -->
+<h4>Social Network Visits</h4>
+<table class="table table-bordered">
+    <thead class="thead-dark">
+    <tr>
+        <th>Social Network</th>
+        <th>Total Visits</th>
+    </tr>
+    </thead>
+    <tbody>
+    <?php foreach ($social_result as $social): ?>
+        <tr>
+            <td><?= htmlspecialchars($social->social_network) ?></td>
+            <td><?= htmlspecialchars($social->total_visits) ?></td>
+        </tr>
+    <?php endforeach; ?>
+    </tbody>
+</table>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
