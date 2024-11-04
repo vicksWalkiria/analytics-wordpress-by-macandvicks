@@ -119,6 +119,34 @@ function analytics_report_page() {
     $sessions_count = $wpdb->get_var($sessions_query) ?? 1;
     $pages_per_session = $sessions_count > 0 ? ($total_visits / $sessions_count) : 0;
 
+    // Construir el filtro combinado para la cláusula WHERE
+    $where_clause = ''; // Aquí define tu cláusula WHERE de acuerdo a tus filtros
+
+    // Consulta para las páginas vistas con detalles
+    $pages_query = "
+        SELECT url_visited, COUNT(*) as visit_count,
+               (SELECT referrer_url FROM {$wpdb->prefix}analytics WHERE url_visited = a.url_visited GROUP BY referrer_url ORDER BY COUNT(*) DESC LIMIT 1) as top_referrer,
+               MAX(bot_name) as bot_name
+        FROM {$wpdb->prefix}analytics a
+        $where_clause
+        GROUP BY url_visited
+        ORDER BY visit_count DESC";
+
+    // Obtener los resultados de la consulta
+    $pages_result = $wpdb->get_results($pages_query);
+
+    // Consulta para el número de visitas de cada red social en el intervalo
+    $social_query = "
+        SELECT s.name as social_network, COUNT(a.id_social) as total_visits
+        FROM {$wpdb->prefix}analytics a
+        LEFT JOIN {$wpdb->prefix}social_networks s ON a.id_social = s.id_social
+        $where_clause AND a.id_social IS NOT NULL
+        GROUP BY a.id_social
+        ORDER BY total_visits DESC";
+
+    // Obtener los resultados de la consulta de redes sociales
+    $social_result = $wpdb->get_results($social_query);
+
     // Contenido HTML de la página
     ?>
     <div class="wrap">
@@ -154,8 +182,52 @@ function analytics_report_page() {
         <h3>Total Visits: <?= $total_visits ?></h3>
         <h4>Pages per Session: <?= number_format($pages_per_session, 2) ?></h4>
 
+
+
         <h4>Visits Over Time</h4>
         <canvas id="visitsChart"></canvas>
+
+        <!-- Tabla de páginas vistas -->
+           <h4>Page Views</h4>
+           <table class="table table-bordered">
+               <thead class="thead-dark">
+               <tr>
+                   <th>URL</th>
+                   <th>Visits</th>
+                   <th>Top Referrer</th>
+                   <th>Bot</th>
+               </tr>
+               </thead>
+               <tbody>
+               <?php while ($page = $pages_result->fetch_assoc()): ?>
+                   <tr>
+                       <td><?= htmlspecialchars($page['url_visited']) ?></td>
+                       <td><?= htmlspecialchars($page['visit_count']) ?></td>
+                       <td><?= htmlspecialchars($page['top_referrer'] ?? 'Direct') ?></td>
+                       <td><?= $page['bot_name'] ? htmlspecialchars($page['bot_name']) : 'User' ?></td>
+                   </tr>
+               <?php endwhile; ?>
+               </tbody>
+           </table>
+
+           <!-- Tabla de visitas por red social -->
+           <h4>Social Network Visits</h4>
+           <table class="table table-bordered">
+               <thead class="thead-dark">
+               <tr>
+                   <th>Social Network</th>
+                   <th>Total Visits</th>
+               </tr>
+               </thead>
+               <tbody>
+               <?php while ($social = $social_result->fetch_assoc()): ?>
+                   <tr>
+                       <td><?= htmlspecialchars($social['social_network']) ?></td>
+                       <td><?= htmlspecialchars($social['total_visits']) ?></td>
+                   </tr>
+               <?php endwhile; ?>
+               </tbody>
+           </table>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
